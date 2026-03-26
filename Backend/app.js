@@ -28,6 +28,16 @@ const setInitializationPromise = (promise) => {
     initializationPromise = promise || Promise.resolve();
 };
 
+const normalizeEnvValue = (value) => {
+    if (typeof value !== 'string') return value;
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+    if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+        return trimmed.slice(1, -1).trim();
+    }
+    return trimmed;
+};
+
 const getAllowedOrigins = () => {
     const configured = [process.env.CORS_ORIGINS, process.env.FRONTEND_URL]
         .filter(Boolean)
@@ -65,7 +75,11 @@ app.use(async (_req, _res, next) => {
 });
 
 const connectDB = async () => {
-    const uris = [process.env.MONGODB_URI, process.env.MONGODB_URI_FALLBACK].filter(Boolean);
+    const primaryUri = normalizeEnvValue(
+        process.env.MONGODB_URI || process.env.MONGO_URI || process.env.DATABASE_URL
+    );
+    const fallbackUri = normalizeEnvValue(process.env.MONGODB_URI_FALLBACK);
+    const uris = [primaryUri, fallbackUri].filter(Boolean);
 
     for (const uri of uris) {
         try {
